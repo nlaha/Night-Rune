@@ -6,4 +6,7 @@ A speedy discord bot for your server
    
 ### Hosting
     There must be a Lavalink server present on localhost:2333
-    Config.json with bot token
+    and a config.json with the bot token next to the executable
+    {
+        "Token": "My token"
+    }   
