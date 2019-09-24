@@ -1,0 +1,236 @@
+﻿using Discord;
+using Discord.WebSocket;
+using Serilog;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Victoria;
+using Victoria.Entities;
+
+namespace NightRune.Services
+{
+    public class MusicService
+    {
+        private LavaRestClient _lavaRestClient;
+        private LavaSocketClient _lavaSocketClient;
+        private DiscordSocketClient _client;
+
+        public MusicService(LavaRestClient lavaRestClient, DiscordSocketClient client, LavaSocketClient lavaSocketClient)
+        {
+            _client = client;
+            _lavaRestClient = lavaRestClient;
+            _lavaSocketClient = lavaSocketClient;
+        }
+
+        public Task InitializeAsync()
+        {
+            _client.Ready += ClientReadyAsync;
+            _lavaSocketClient.Log += LogAsync;
+            _lavaSocketClient.OnTrackFinished += TrackFinished;
+
+            // make our logger instance
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console()
+                .CreateLogger();
+
+            return Task.CompletedTask;
+        }
+
+        public async Task ConnectAsync(SocketVoiceChannel voiceChannel, ITextChannel textChannel)
+            => await _lavaSocketClient.ConnectAsync(voiceChannel, textChannel);
+
+        public async Task LeaveAsync(SocketVoiceChannel voiceChannel)
+            => await _lavaSocketClient.DisconnectAsync(voiceChannel);
+
+        public async Task<Embed> PlayAsync(string query, ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+            var results = await _lavaRestClient.SearchTracksAsync(query);
+            if (results.LoadType == LoadType.NoMatches || results.LoadType == LoadType.LoadFailed)
+            {
+                var embed = new EmbedBuilder();
+
+                embed.WithAuthor(_client.CurrentUser)
+                    .WithColor(Color.Red)
+                    .WithTitle("No Matches found!")
+                    .WithDescription("Please enter a search term or a URL")
+                    .WithCurrentTimestamp()
+                    .Build();
+
+                return embed.Build();
+            }
+
+            var track = results.Tracks.FirstOrDefault();
+
+            if (_player.IsPlaying)
+            {
+                _player.Queue.Enqueue(track);
+                var thumb = await track.FetchThumbnailAsync();
+
+                var embed = new EmbedBuilder();
+
+                embed.AddField($"Playing from {track.Provider}",
+                    $"[Open Online]({track.Uri})!")
+                    .WithAuthor(_client.CurrentUser)
+                    .WithColor(Color.Blue)
+                    .WithTitle($"Added {track.Title} to the queue")
+                    .WithDescription($"Song Length: {track.Length.Hours}:{track.Length.Minutes}:{track.Length.Seconds} (H:M:S)")
+                    .WithUrl(track.Uri.ToString())
+                    .WithCurrentTimestamp()
+                    .WithImageUrl(thumb)
+                    .Build();
+
+                return embed.Build();
+            }
+            else
+            {
+                await _player.PlayAsync(track);
+                var thumb = await track.FetchThumbnailAsync();
+
+                var embed = new EmbedBuilder();
+
+                embed.AddField($"Playing from {track.Provider}",
+                    $"[Open Online]({track.Uri})!")
+                    .WithAuthor(_client.CurrentUser)
+                    .WithColor(Color.Blue)
+                    .WithTitle($"Now playing {track.Title}")
+                    .WithDescription($"Song Length: {track.Length.Hours}:{track.Length.Minutes}:{track.Length.Seconds} (H:M:S)")
+                    .WithUrl(track.Uri.ToString())
+                    .WithCurrentTimestamp()
+                    .WithImageUrl(thumb)
+                    .Build();
+
+                return embed.Build();
+            }
+        }
+        public async Task<string> ClearQueue(ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+
+            _player.Queue.Clear();
+            return "Queue Cleared";
+        }
+
+        public async Task<string> StopAsync(ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+            if (_player is null)
+                return "Error with Player";
+            await _player.StopAsync();
+            return "Music Playback Stopped.";
+        }
+
+        public async Task<string> SkipAsync(ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+            if (_player is null || _player.Queue.Items.Count() is 0)
+                return "Nothing in queue.";
+
+            var oldTrack = _player.CurrentTrack;
+            await _player.SkipAsync();
+            return $"Skiped: {oldTrack.Title} \nNow Playing: {_player.CurrentTrack.Title}";
+        }
+
+        public async Task<string> SetVolumeAsync(int vol, ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+            if (_player is null)
+                return "Player isn't playing.";
+
+            if (vol > 150 || vol <= 2)
+            {
+                return "Please use a number between 2 - 150";
+            }
+
+            await _player.SetVolumeAsync(vol);
+            return $"Volume set to: {vol}";
+        }
+
+        public async Task<string> PauseOrResumeAsync(ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+            if (_player is null)
+                return "Player isn't playing.";
+
+            if (!_player.IsPaused)
+            {
+                await _player.PauseAsync();
+                return "Player is Paused.";
+            }
+            else
+            {
+                await _player.ResumeAsync();
+                return "Playback resumed.";
+            }
+        }
+
+        public async Task<string> ResumeAsync(ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+            if (_player is null)
+                return "Player isn't playing.";
+
+            if (_player.IsPaused)
+            {
+                await _player.ResumeAsync();
+                return "Playback resumed.";
+            }
+
+            return "Player is not paused.";
+        }
+
+        public async Task<Embed> ShowQueue(ulong guildId)
+        {
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+            if (_player is null || _player.Queue.Items.Count() is 0) {
+                var embedErr = new EmbedBuilder();
+
+                embedErr.WithAuthor(_client.CurrentUser)
+                    .WithColor(Color.Red)
+                    .WithTitle($"Current Queue")
+                    .WithDescription($"Nothing is in the queue, run the play command to add some tracks!")
+                    .WithCurrentTimestamp()
+                    .Build();
+
+                return embedErr.Build();
+            }
+
+            var embed = new EmbedBuilder();
+
+            embed.WithAuthor(_client.CurrentUser)
+                .WithColor(Color.Green)
+                .WithTitle($"Current Queue")
+                .WithCurrentTimestamp()
+                .WithDescription($"Songs in queue: {_player.Queue.Count}")
+                .Build();
+
+            return embed.Build();
+        }
+
+        private async Task ClientReadyAsync()
+        {
+            await _lavaSocketClient.StartAsync(_client);
+        }
+
+        private async Task TrackFinished(LavaPlayer player, LavaTrack track, TrackEndReason reason)
+        {
+            if (!reason.ShouldPlayNext())
+                return;
+
+            if (!player.Queue.TryDequeue(out var item) || !(item is LavaTrack nextTrack))
+            {
+                await player.TextChannel.SendMessageAsync("There are no more tracks in the queue.");
+                await _lavaSocketClient.DisconnectAsync(player.VoiceChannel);
+                return;
+            }
+
+            await player.PlayAsync(nextTrack);
+        }
+
+        private Task LogAsync(LogMessage logMessage)
+        {
+            Log.Information(logMessage.Message);
+            return Task.CompletedTask;
+        }
+    }
+}
