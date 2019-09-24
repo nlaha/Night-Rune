@@ -1,3 +1,4 @@
+<img src="https://raw.githubusercontent.com/nlaha/Night-Rune/master/Art/Icon.png" alt="NightRune" width="200"/></img>
 # Night-Rune
 A speedy discord bot for your server
 
