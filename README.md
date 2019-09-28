@@ -6,8 +6,9 @@ A speedy discord bot for your server
     dotnet publish -c Release -r <(windows/linux)-x64> -o <my output directory>
    
 ### Hosting
-    There must be a Lavalink server present on localhost:2333
-    and a config.json with the bot token next to the executable
+There must be a Lavalink server present on localhost:2333
+and a config.json with the bot token next to the executable
+
     {
         "Token": "My token"
     }   
