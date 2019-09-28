@@ -19,14 +19,17 @@ namespace NightRune.Modules
     public class MidiSynth : ModuleBase<SocketCommandContext>
     {
         private UtilitiesService _utilitiesService;
+        private DiscordSocketClient _client;
 
-        public MidiSynth(UtilitiesService midiSynthService)
+        public MidiSynth(UtilitiesService midiSynthService, DiscordSocketClient client)
         {
             _utilitiesService = midiSynthService;
+            _client = client;
         }
 
         [Command("Fry")]
-        public async Task Synth()
+        [Summary("Deep fries your attached image")]
+        public async Task Fry()
         {
             var attachments = Context.Message.Attachments;
       
@@ -52,8 +55,32 @@ namespace NightRune.Modules
             inStream.Dispose();
             inFileStream.Dispose();
 
+            // Fry the image
             await Context.Channel.SendFileAsync(await _utilitiesService.DeepFry(file, buffer));
+
+            // Delete the file when we're done with it
             File.Delete(file);
+        }
+
+        [Command("Purge")]
+        [Summary("Deletes set amount of messages")]
+        [RequireUserPermission(GuildPermission.ManageMessages)]
+        [RequireBotPermission(GuildPermission.ManageMessages)]
+        public async Task Purge(uint amount)
+        {
+            if (amount == 0 || amount.GetType() == null)
+            {
+                await ReplyAsync("Please specify a number of messages to delete");
+            }
+
+            var user = Context.User as SocketGuildUser;
+            var channel = Context.Channel as SocketGuildChannel;
+            var messages = await Context.Message.Channel.GetMessagesAsync((int)amount).FlattenAsync();
+
+            await (Context.Channel as SocketTextChannel).DeleteMessagesAsync(messages);
+
+            ReplyAsync($"{amount} Messages Purged");
+
         }
 
     }

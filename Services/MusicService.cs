@@ -112,6 +112,7 @@ namespace NightRune.Services
             var _player = _lavaSocketClient.GetPlayer(guildId);
 
             _player.Queue.Clear();
+            QueueData.Clear();
             return "Queue Cleared";
         }
 
