@@ -61,6 +61,7 @@ namespace NightRune
             await cmdHandler.InitializeAsync();
 
             await _services.GetRequiredService<MusicService>().InitializeAsync();
+            await _services.GetRequiredService<UtilitiesService>().InitializeAsync();
 
             await Task.Delay(-1);
         }
@@ -78,6 +79,7 @@ namespace NightRune
             .AddSingleton<LavaRestClient>()
             .AddSingleton<LavaSocketClient>()
             .AddSingleton<MusicService>()
+            .AddSingleton<UtilitiesService>()
             .BuildServiceProvider();
     }
 }

@@ -87,7 +87,7 @@ namespace NightRune.Modules
 
         [Command("Skip")]
         public async Task Skip()
-            => await ReplyAsync(await _musicService.SkipAsync(Context.Guild.Id));
+            => await ReplyAsync(embed: await _musicService.SkipAsync(Context.Guild.Id));
 
         [Command("Volume")]
         public async Task Volume(int vol)

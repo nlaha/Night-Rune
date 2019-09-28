@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using Serilog;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Victoria;
@@ -14,6 +15,7 @@ namespace NightRune.Services
         private LavaRestClient _lavaRestClient;
         private LavaSocketClient _lavaSocketClient;
         private DiscordSocketClient _client;
+        public List<LavaTrack> QueueData = new List<LavaTrack>();
 
         public MusicService(LavaRestClient lavaRestClient, DiscordSocketClient client, LavaSocketClient lavaSocketClient)
         {
@@ -45,7 +47,7 @@ namespace NightRune.Services
         public async Task<Embed> PlayAsync(string query, ulong guildId)
         {
             var _player = _lavaSocketClient.GetPlayer(guildId);
-            var results = await _lavaRestClient.SearchTracksAsync(query);
+            var results = await _lavaRestClient.SearchYouTubeAsync(query);
             if (results.LoadType == LoadType.NoMatches || results.LoadType == LoadType.LoadFailed)
             {
                 var embed = new EmbedBuilder();
@@ -65,6 +67,7 @@ namespace NightRune.Services
             if (_player.IsPlaying)
             {
                 _player.Queue.Enqueue(track);
+                QueueData.Add(track);
                 var thumb = await track.FetchThumbnailAsync();
 
                 var embed = new EmbedBuilder();
@@ -85,6 +88,7 @@ namespace NightRune.Services
             else
             {
                 await _player.PlayAsync(track);
+                QueueData.Add(track);
                 var thumb = await track.FetchThumbnailAsync();
 
                 var embed = new EmbedBuilder();
@@ -120,15 +124,34 @@ namespace NightRune.Services
             return "Music Playback Stopped.";
         }
 
-        public async Task<string> SkipAsync(ulong guildId)
+        public async Task<Embed> SkipAsync(ulong guildId)
         {
             var _player = _lavaSocketClient.GetPlayer(guildId);
-            if (_player is null || _player.Queue.Items.Count() is 0)
-                return "Nothing in queue.";
+            if (_player is null || _player.Queue.Items.Count() is 0) {
+                var embedErr = new EmbedBuilder();
+
+                embedErr.WithAuthor(_client.CurrentUser)
+                    .WithColor(Color.Red)
+                    .WithTitle($"\u2757 Nothing in the queue!")
+                    .WithCurrentTimestamp()
+                    .Build();
+
+                return embedErr.Build();
+            }
 
             var oldTrack = _player.CurrentTrack;
             await _player.SkipAsync();
-            return $"Skiped: {oldTrack.Title} \nNow Playing: {_player.CurrentTrack.Title}";
+
+            var embed = new EmbedBuilder();
+
+            embed.WithAuthor(_client.CurrentUser)
+                .WithColor(Color.Blue)
+                .WithTitle($"\u23E9 Skiped: {oldTrack.Title} \nNow Playing: {_player.CurrentTrack.Title}")
+                .WithDescription($"Song Length: {_player.CurrentTrack.Length.Hours}:{_player.CurrentTrack.Length.Minutes}:{_player.CurrentTrack.Length.Seconds} (H:M:S)")
+                .WithCurrentTimestamp()
+                .Build();
+
+            return embed.Build();
         }
 
         public async Task<string> SetVolumeAsync(int vol, ulong guildId)
@@ -201,8 +224,15 @@ namespace NightRune.Services
                 .WithColor(Color.Green)
                 .WithTitle($"Current Queue")
                 .WithCurrentTimestamp()
-                .WithDescription($"Songs in queue: {_player.Queue.Count}")
+                .WithDescription($"Queue Length: {_player.Queue.Count}\n" +
+                $"Queue Tracks:\n")
                 .Build();
+
+            foreach (var track in QueueData)
+            {
+                embed.AddField($"{track.Title}\n{track.Uri}", $"*Author:* {track.Author}\n" +
+                    $"*Song Length:* {track.Length.Hours}:{track.Length.Minutes}:{track.Length.Seconds} (H:M:S)\n");
+            }
 
             return embed.Build();
         }
