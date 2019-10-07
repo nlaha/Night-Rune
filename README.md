@@ -1,5 +1,7 @@
 <img src="https://raw.githubusercontent.com/nlaha/Night-Rune/master/Art/Icon.png" alt="NightRune" width="200"/></img>
 # Night-Rune
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/nlaha/Night-Rune.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/nlaha/Night-Rune/alerts/)
+
 A speedy discord bot for your server
 
 ### Publish
