@@ -7,10 +7,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Victoria;
 using Victoria.Entities;
+using Discord.Addons.Interactive;
+using Discord.Commands;
 
 namespace NightRune.Services
 {
-    public class MusicService
+    public class MusicService : InteractiveBase
     {
         private LavaRestClient _lavaRestClient;
         private LavaSocketClient _lavaSocketClient;
@@ -44,10 +46,62 @@ namespace NightRune.Services
         public async Task LeaveAsync(SocketVoiceChannel voiceChannel)
             => await _lavaSocketClient.DisconnectAsync(voiceChannel);
 
+        public async Task<LavaTrack> PickTrackAsync(IEnumerable<LavaTrack> tracks) 
+        {
+            List <LavaTrack>  trackList = tracks.ToList();
+            var chosenTrack = trackList[0];
+
+            var embed = new EmbedBuilder();
+
+            // build the search result track list embed
+            embed.WithAuthor(_client.CurrentUser)
+                .WithColor(Color.Green)
+                .WithTitle($"Search Results")
+                .WithCurrentTimestamp()
+                .WithDescription($"Total number of Results: {trackList.Count}\nShowing the top 5" +
+                $"Please respond with 1 to 5 to select a track:\n")
+                .Build();
+
+            for (int i = 0; i < trackList.Count; i++)
+            {
+                if (i < 5)
+                {
+                    var track = trackList[i];
+                    Log.Information(track.Title);
+
+                    // Show the track info in the list
+                    embed.AddField($"{track.Title}\n{track.Uri}", $"*Author:* {track.Author}\n" +
+                    $"*Song Length:* {track.Length.Hours}:{track.Length.Minutes}:{track.Length.Seconds} (H:M:S)\n");
+                }
+            }
+
+            // Show the tracklist
+            await ReplyAsync(embed: embed.Build());
+
+            SocketMessage trackSelectionMSG = await NextMessageAsync();
+            // Placeholder to detect if the variable has been changed
+            int trackSelection = 9000;
+            int.TryParse(trackSelectionMSG.Content, out trackSelection);
+
+            // If the user's input is within the track list range, select a track
+            if ((trackSelection - 1) < trackList.Count && (trackSelection - 1) > -1)
+            {
+                chosenTrack = trackList[trackSelection - 1];
+            }
+            else
+            {
+                await ReplyAsync("Invalid selection, playing the first search result!");
+            }
+
+            return chosenTrack;
+        }
+
         public async Task<Embed> PlayAsync(string query, ulong guildId)
         {
             var _player = _lavaSocketClient.GetPlayer(guildId);
             var results = await _lavaRestClient.SearchYouTubeAsync(query);
+
+            // Check if we get any results
             if (results.LoadType == LoadType.NoMatches || results.LoadType == LoadType.LoadFailed)
             {
                 var embed = new EmbedBuilder();
@@ -62,10 +116,12 @@ namespace NightRune.Services
                 return embed.Build();
             }
 
-            var track = results.Tracks.FirstOrDefault();
+            // Show the search results and pick a track
+            var track = await PickTrackAsync(results.Tracks);
 
             if (_player.IsPlaying)
             {
+                // Add to queue
                 _player.Queue.Enqueue(track);
                 QueueData.Add(track);
                 var thumb = await track.FetchThumbnailAsync();
@@ -87,6 +143,7 @@ namespace NightRune.Services
             }
             else
             {
+                // Add and play
                 await _player.PlayAsync(track);
                 QueueData.Add(track);
                 var thumb = await track.FetchThumbnailAsync();

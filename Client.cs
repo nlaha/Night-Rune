@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 
 // Makes logging readable
 using Serilog;
+using Discord.Addons.Interactive;
 
 namespace NightRune
 {
@@ -79,6 +80,7 @@ namespace NightRune
             .AddSingleton<LavaRestClient>()
             .AddSingleton<LavaSocketClient>()
             .AddSingleton<MusicService>()
+            .AddSingleton<InteractiveService>()
             .AddSingleton<UtilitiesService>()
             .BuildServiceProvider();
     }
