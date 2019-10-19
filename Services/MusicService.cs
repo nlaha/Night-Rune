@@ -18,6 +18,25 @@ namespace NightRune.Services
         private LavaSocketClient _lavaSocketClient;
         private DiscordSocketClient _client;
         public List<LavaTrack> QueueData = new List<LavaTrack>();
+        TaskCompletionSource<bool> tcs = null;
+
+        private int track1 = 0;
+        private int track2 = 0;
+        private int track3 = 0;
+        private int track4 = 0;
+        private int track5 = 0;
+
+        private int trackSelection = 0;
+
+        public void resetTracks()
+        {
+            track1 = 0;
+            track2 = 0;
+            track3 = 0;
+            track4 = 0;
+            track5 = 0;
+        }
+
 
         public MusicService(LavaRestClient lavaRestClient, DiscordSocketClient client, LavaSocketClient lavaSocketClient)
         {
@@ -29,6 +48,7 @@ namespace NightRune.Services
         public Task InitializeAsync()
         {
             _client.Ready += ClientReadyAsync;
+            _client.ReactionAdded += OnReactionAdded;
             _lavaSocketClient.Log += LogAsync;
             _lavaSocketClient.OnTrackFinished += TrackFinished;
 
@@ -40,84 +60,101 @@ namespace NightRune.Services
             return Task.CompletedTask;
         }
 
+        private Task OnReactionAdded(Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            Emoji emoji1 = new Emoji("📕");
+            Emoji emoji2 = new Emoji("📗");
+            Emoji emoji3 = new Emoji("📘");
+            Emoji emoji4 = new Emoji("📙");
+            Emoji emoji5 = new Emoji("📒");
+
+            if (reaction.Emote == emoji1)
+            {
+                track1++;
+            }
+            if (reaction.Emote == emoji2)
+            {
+                track2++;
+
+            }
+            if (reaction.Emote == emoji3)
+            {
+                track3++;
+
+            }
+            if (reaction.Emote == emoji4)
+            {
+                track4++;
+
+            }
+            if (reaction.Emote == emoji5)
+            {
+                track5++;
+
+            }
+
+            while (trackSelection == 0)
+            {
+                if (track1 > 0)
+                {
+                    trackSelection = 1;
+                }
+                if (track2 > 0)
+                {
+                    trackSelection = 2;
+                }
+                if (track3 > 0)
+                {
+                    trackSelection = 3;
+                }
+                if (track4 > 0)
+                {
+                    trackSelection = 4;
+                }
+                if (track5 > 0)
+                {
+                    trackSelection = 5;
+                }
+            }
+
+            tcs?.TrySetResult(true);
+
+            return Task.CompletedTask;
+        }
+
         public async Task ConnectAsync(SocketVoiceChannel voiceChannel, ITextChannel textChannel)
             => await _lavaSocketClient.ConnectAsync(voiceChannel, textChannel);
 
         public async Task LeaveAsync(SocketVoiceChannel voiceChannel)
             => await _lavaSocketClient.DisconnectAsync(voiceChannel);
 
-        public async Task<LavaTrack> PickTrackAsync(IEnumerable<LavaTrack> tracks) 
-        {
-            List <LavaTrack>  trackList = tracks.ToList();
-            var chosenTrack = trackList[0];
-
-            var embed = new EmbedBuilder();
-
-            // build the search result track list embed
-            embed.WithAuthor(_client.CurrentUser)
-                .WithColor(Color.Green)
-                .WithTitle($"Search Results")
-                .WithCurrentTimestamp()
-                .WithDescription($"Total number of Results: {trackList.Count}\nShowing the top 5" +
-                $"Please respond with 1 to 5 to select a track:\n")
-                .Build();
-
-            for (int i = 0; i < trackList.Count; i++)
-            {
-                if (i < 5)
-                {
-                    var track = trackList[i];
-                    Log.Information(track.Title);
-
-                    // Show the track info in the list
-                    embed.AddField($"{track.Title}\n{track.Uri}", $"*Author:* {track.Author}\n" +
-                    $"*Song Length:* {track.Length.Hours}:{track.Length.Minutes}:{track.Length.Seconds} (H:M:S)\n");
-                }
-            }
-
-            // Show the tracklist
-            await ReplyAsync(embed: embed.Build());
-
-            SocketMessage trackSelectionMSG = await NextMessageAsync();
-            // Placeholder to detect if the variable has been changed
-            int trackSelection = 9000;
-            int.TryParse(trackSelectionMSG.Content, out trackSelection);
-
-            // If the user's input is within the track list range, select a track
-            if ((trackSelection - 1) < trackList.Count && (trackSelection - 1) > -1)
-            {
-                chosenTrack = trackList[trackSelection - 1];
-            }
-            else
-            {
-                await ReplyAsync("Invalid selection, playing the first search result!");
-            }
-
-            return chosenTrack;
-        }
-
-        public async Task<Embed> PlayAsync(string query, ulong guildId)
+        public async Task<Victoria.Entities.SearchResult> GetTracksAsync(string query, ulong guildId)
         {
             var _player = _lavaSocketClient.GetPlayer(guildId);
             var results = await _lavaRestClient.SearchYouTubeAsync(query);
 
-            // Check if we get any results
-            if (results.LoadType == LoadType.NoMatches || results.LoadType == LoadType.LoadFailed)
+            return results;
+        }
+
+        public async Task<Embed> PlayAsync(List<LavaTrack> trackList, ulong guildId)
+        {
+            tcs = new TaskCompletionSource<bool>();
+            await tcs.Task;
+
+            var _player = _lavaSocketClient.GetPlayer(guildId);
+
+            var track = trackList[0];
+
+            // If the user's input is within the track list range, select a track
+            if ((trackSelection - 1) < trackList.Count && (trackSelection - 1) > -1)
             {
-                var embed = new EmbedBuilder();
-
-                embed.WithAuthor(_client.CurrentUser)
-                    .WithColor(Color.Red)
-                    .WithTitle("No Matches found!")
-                    .WithDescription("Please enter a search term or a URL")
-                    .WithCurrentTimestamp()
-                    .Build();
-
-                return embed.Build();
+                track = trackList[trackSelection - 1];
             }
-
-            // Show the search results and pick a track
-            var track = await PickTrackAsync(results.Tracks);
+            else
+            {
+                // If the user didn't enter valid input, choose the first search result.
+                await ReplyAsync("Invalid selection, playing the first search result!");
+            }
 
             if (_player.IsPlaying)
             {
