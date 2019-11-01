@@ -1,6 +1,7 @@
 <img src="https://raw.githubusercontent.com/nlaha/Night-Rune/master/Art/Icon.png" alt="NightRune" width="200"/></img>
 # Night-Rune
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/nlaha/Night-Rune.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/nlaha/Night-Rune/alerts/)
+[![Build Status](https://travis-ci.org/nlaha/Night-Rune.svg?branch=master)](https://travis-ci.org/nlaha/Night-Rune)
 
 A speedy discord bot for your server
 
