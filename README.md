@@ -13,5 +13,8 @@ There must be a Lavalink server present on localhost:2333
 and a config.json with the bot token next to the executable
 
     {
-        "Token": "My token"
-    }   
+      "DiscordToken": "mytoken",
+      "DefaultPrefix": "!",
+      "GameStatus": "Playing Music",
+      "BlacklistedChannels": []
+    }
