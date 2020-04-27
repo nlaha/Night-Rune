@@ -3,12 +3,3 @@ mono: none
 dotnet: 3.1
 script:
 - dotnet build
-deploy:
-  provider: releases
-  api_key:
-    secure: iMI0hr5aF6101WJtnucDfB7+7Nbt8ks5jsOOH8LyfrD/zGmaChCTENZq9Ony9yrQBHyh+ao7V9Ezt4MjN8zb4ucrNWMyNZJBkbOjRP6JcJKHGlrEt19yo16/mmMSbkn2Z2cmaO8eBIAGI8+fibO93d3ZsE3C522PspReuxQnD5LhewQ1RHYUF/VH3/hxiPo+mnJexwRad10cIP2ddO2ii4VzHIYJOAFN8H5ms+E5KLLOnt7zPx80HbFHqLtnznf9/IXvYEXdCQW+m4bpHcYANPDRrRiJwef8iXsci+zOpo2tOIryATshB1E5t1ibzzjQQ2U2how1nPDiYnzuxQuPMtS4nxBvfQH2FTL8kh7uLt9LoI9KKTkhn6Jol+dPQqweb+Bd3hfNb62SsbCREO2m5D7Qfjqa2p0l4k2lxc0wcEEXtB4Hf0YC1V0ZaDzk8fDs9Jf/TPKbu24WJdQjJK8mBjno/arKtLTUwpqOjpKoV16OGnO5PaoUKKgsOD2e0fZ0MzhePGkkP/KzaeQmNq0kz5E9zuPmnglk3/7stE/1T2jyiROyX8FkXYqrqQ1V98kdsBHcAk+rCbytFMNGVKg0Y8QhSRGw8v4UlKnUjMrkZQApCdDpR3nmKeRCwK9b3lXPEE09s/joJPGbe1mR2aojHrtVTG0l14mMvC8hRa2xXM8=
-  file_glob: true
-  file: bin/Debug/netcoreapp3.1/*
-  on:
-    tags: true
-  skip_cleanup: 'true'
