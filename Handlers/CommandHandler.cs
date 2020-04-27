@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Serilog;
 
-namespace NightRune
+namespace NightRune.Handlers
 {
     public class CommandHandler
     {

@@ -16,50 +16,15 @@ using System.Threading.Tasks;
 
 namespace NightRune.Modules
 {
-    public class MidiSynth : ModuleBase<SocketCommandContext>
+    public class Utilities : ModuleBase<SocketCommandContext>
     {
         private UtilitiesService _utilitiesService;
         private DiscordSocketClient _client;
 
-        public MidiSynth(UtilitiesService midiSynthService, DiscordSocketClient client)
+        public Utilities(UtilitiesService utilitiesService, DiscordSocketClient client)
         {
-            _utilitiesService = midiSynthService;
+            _utilitiesService = utilitiesService;
             _client = client;
-        }
-
-        [Command("Fry")]
-        [Summary("Deep fries your attached image")]
-        public async Task Fry()
-        {
-            var attachments = Context.Message.Attachments;
-      
-            // Create a new WebClient instance.
-            WebClient webClient = new WebClient();
-
-            string file = attachments.ElementAt(0).Filename;
-            string url = attachments.ElementAt(0).Url;
-
-            // Download the resource and load the bytes into a buffer.
-            byte[] buffer = webClient.DownloadData(url);
-
-            // Encode the buffer into UTF-8
-            string download = Encoding.UTF8.GetString(buffer);
-
-            var user = Context.User as SocketGuildUser;
-
-            // Save the unfried image as a file
-            MemoryStream inStream = new MemoryStream();
-            inStream.Write(buffer, 0, buffer.Length);
-            FileStream inFileStream = new FileStream(file, FileMode.Create, System.IO.FileAccess.Write);
-            inStream.WriteTo(inFileStream);
-            inStream.Dispose();
-            inFileStream.Dispose();
-
-            // Fry the image
-            await Context.Channel.SendFileAsync(await _utilitiesService.DeepFry(file, buffer));
-
-            // Delete the file when we're done with it
-            File.Delete(file);
         }
 
         [Command("Purge")]
@@ -79,7 +44,7 @@ namespace NightRune.Modules
 
             await (Context.Channel as SocketTextChannel).DeleteMessagesAsync(messages);
 
-            ReplyAsync($"{amount} Messages Purged");
+            await ReplyAsync($"{amount} Messages Purged");
 
         }
 
