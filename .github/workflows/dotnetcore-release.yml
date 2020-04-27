@@ -23,12 +23,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
-    - name: Semver Release
-      uses: K-Phoen/semver-release-action@v1.2.0
-      with:
-        # Branch to tag
-        release_branch: master
-        # Release strategy
-        release_strategy: release
-        # base tag
-        tag: Night Rune 
+    - name: Semantic Releaser
+      uses: brpaz/action-semantic-release@v1
+      with: 
+        branch: master
