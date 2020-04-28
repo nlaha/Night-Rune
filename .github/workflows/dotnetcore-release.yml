@@ -1,10 +1,8 @@
 name: .NET Core Release
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  watch
+    types: [started]
 
 jobs:
   build:
@@ -23,7 +21,10 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
-    - name: Semantic Releaser
-      uses: brpaz/action-semantic-release@v1
-      with: 
-        branch: master
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Semantic Release
+      uses: cycjimmy/semantic-release-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
