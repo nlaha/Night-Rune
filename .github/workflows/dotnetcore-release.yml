@@ -1,8 +1,11 @@
 name: .NET Core Release
 
 on:
-  watch
-    types: [started]
+  push:
+    tags: 
+      - release
+    branches: 
+      - master
 
 jobs:
   build:
